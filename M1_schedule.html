@@ -67,13 +67,13 @@ body.hide-coordinates .coordinate{display:none}
 </head>
 <body><main>
 <header><span class="badge">M1 · 問題導向因應</span><h1>把「讀不完」變成做得到的計畫</h1><p>數學週四考試、英文週六考試、理化週日考試。你能控制的是<strong>任務順序、讀書分段和休息安排</strong>；考試日期無法更改。</p><p class="sub">① 定義問題 → ② 嘗試安排 → ③ 檢查與調整 → ④ 執行計畫。目標是保留資源，不是填滿每一格。</p><div id="completion" class="badge" aria-live="polite"></div></header>
-<div class="layout"><section><div class="panel"><h2>任務工具箱</h2><p class="sub">拖曳任務到格子，或先點選任務、再點格子；鍵盤可用 Tab 與 Enter。點格內任務可移除。每格容量 4 小時，格內由上到下依序執行。</p><div id="tools" class="tools"></div><p class="small">睡眠每塊 1 小時，可重複放置；每一天有 24 小時。未填空間只代表尚未安排，不能代替讀書後的明確休息。</p><div id="selection" class="small" aria-live="polite"></div></div><div class="panel"><h2>一週計畫牆</h2><p class="small">每欄下方的「安排睡眠」會替當天放入深夜 4 塊、早上 3 塊睡眠。已占用的位置不會被覆蓋。橫向捲動可查看整週。</p><div class="scroll"><table aria-label="一週七天、每天六時段的時間安排"><thead><tr id="head"></tr></thead><tbody id="board"></tbody></table></div></div></section>
+<div class="layout"><section><div class="panel"><h2>任務工具箱</h2><p class="sub">拖曳任務到格子，或先點選任務、再點格子；鍵盤可用 Tab 與 Enter。點格內任務可移除。每格容量 4 小時，格內由上到下依序執行。</p><div id="tools" class="tools"></div><p class="small">睡眠每塊 1 小時，可重複放置；每一天有 24 小時。未填空間只代表尚未安排，不能代替讀書後的明確休息。</p><div id="selection" class="small" aria-live="polite"></div></div><div class="panel"><h2>一週計畫牆</h2><p class="small">每欄下方的「安排睡眠」會替當天放入深夜 4 塊、凌晨 3 塊睡眠。已占用的位置不會被覆蓋。橫向捲動可查看整週。</p><div class="scroll"><table aria-label="一週七天、每天六時段的時間安排"><thead><tr id="head"></tr></thead><tbody id="board"></tbody></table></div></div></section>
 <aside class="sidebar"><div class="panel"><h2>計畫壓力儀表</h2><label for="stress">待處理負荷 <strong id="stressText"></strong></label><meter id="stress" min="0" max="100" low="30" high="65" optimum="0" value="100"></meter><p class="small">依未完成條件估算的遊戲回饋，並非心理測量。調整計畫，就能降低待處理負荷。</p><ul id="checks" class="checks"></ul><div style="display:flex;gap:6px"><button id="submit" style="flex:1">檢查計畫</button><button id="apply" class="primary" style="flex:1" disabled>套用強化</button></div><div id="notice" role="status" aria-live="polite">先找出最接近的期限，再替每天保留睡眠。</div><div id="result" hidden class="success"></div></div><div class="panel"><h2>需要一點方向？</h2><button id="hintButton">提示 1 / 3</button><div id="hint">提示會逐層展開，不會直接替你完成整週。</div><hr><button id="reset">清空並重新規劃</button><p class="small">同一份計畫通關只通知一次；再次挑戰需重新規劃。獎勵效果與次數上限由外層遊戲決定。</p></div></aside></div>
 </main>
 <script>
 'use strict';
 const days=['週一','週二','週三','週四','週五','週六','週日'];
-const periods=['早上','上午','下午','傍晚','晚上','深夜'];
+const periods=['凌晨','上午','中午','下午','晚上','深夜'];
 const types={math:{name:'數學',hours:2,limit:3,color:'#bca1ff',study:true},english:{name:'英文',hours:2,limit:2,color:'#7bbdff',study:true},science:{name:'理化',hours:2,limit:2,color:'#ffb979',study:true},sleep:{name:'睡眠',hours:1,limit:Infinity,color:'#9ea8eb'},exercise:{name:'運動',hours:1,limit:1,color:'#79ddb0'},social:{name:'社交',hours:1,limit:1,color:'#ff9fc4'},meal:{name:'吃飯',hours:1,limit:3,color:'#f6d47c'},rest:{name:'緩衝／休息',hours:1,limit:Infinity,color:'#94d8de'}};
 let plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));
 let undoStack=[],redoStack=[],reviewDay=-1,attempts=0;
@@ -112,7 +112,7 @@ function sleepDay(day){
  if(existing>=7){say(`${days[day]}已有至少 7 小時睡眠。`);return}
  let needed=7-existing;const proposed=plan[day].map(slot=>slot.slice());
  for(const p of [5,5,5,5,0,0,0]){if(!needed)break;if(used(proposed[p])<4){proposed[p].push({type:'sleep',id:++uid});needed--}}
- if(needed){say('早上與深夜的空間不足。請先調整任務，或自行放置睡眠方塊。');return}
+ if(needed){say('凌晨與深夜的空間不足。請先調整任務，或自行放置睡眠方塊。');return}
  remember();plan[day]=proposed;render();say(`${days[day]}已安排 7 小時睡眠，保留其他時段處理任務。`);
 }
 function evaluate(){
@@ -201,7 +201,7 @@ window.addEventListener('message',e=>{
 });
 $('hintButton').onclick=()=>{
  hintLevel=Math.min(3,hintLevel+1);
- const hints=['方向提示：先問自己——哪一科的考試最快到？數學週四考試，所以 3 塊數學都要放在週一至週三。','策略提示：把大任務切小。每讀 2 小時，緊接一塊 1 小時休息；可以放在同格，或接續到下一格。每天先保留 7 小時睡眠。','示範半天：週一早上「睡眠 1h ×3」，上午「數學 2h → 休息 1h → 吃飯 1h」。深夜再排睡眠 4h。依這個原則安排其他任務，並在週五前完成英文、週六前完成理化。'];
+ const hints=['方向提示：先問自己——哪一科的考試最快到？數學週四考試，所以 3 塊數學都要放在週一至週三。','策略提示：把大任務切小。每讀 2 小時，緊接一塊 1 小時休息；可以放在同格，或接續到下一格。每天先保留 7 小時睡眠。','示範半天：週一凌晨「睡眠 1h ×3」，上午「數學 2h → 休息 1h → 吃飯 1h」。深夜再排睡眠 4h。依這個原則安排其他任務，並在週五前完成英文、週六前完成理化。'];
  $('hint').textContent=hints[hintLevel-1];$('hintButton').textContent=hintLevel===3?'再次查看範例提示':`提示 ${hintLevel+1} / 3`;
 };
 $('reset').onclick=()=>{
