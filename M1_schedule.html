@@ -68,7 +68,7 @@ body.hide-coordinates .coordinate{display:none}
 <body><main>
 <header><span class="badge">M1 · 問題導向因應</span><h1>把「讀不完」變成做得到的計畫</h1><p>數學週四考試、英文週六考試、理化週日考試。你能控制的是<strong>任務順序、讀書分段和休息安排</strong>；考試日期無法更改。</p><p class="sub">① 定義問題 → ② 嘗試安排 → ③ 檢查與調整 → ④ 執行計畫。目標是保留資源，不是填滿每一格。</p><div id="completion" class="badge" aria-live="polite"></div></header>
 <div class="layout"><section><div class="panel"><h2>任務工具箱</h2><p class="sub">拖曳任務到格子，或先點選任務、再點格子；鍵盤可用 Tab 與 Enter。點格內任務可移除。每格容量 4 小時，格內由上到下依序執行。</p><div id="tools" class="tools"></div><p class="small">睡眠每塊 1 小時，可重複放置；每一天有 24 小時。未填空間只代表尚未安排，不能代替讀書後的明確休息。</p><div id="selection" class="small" aria-live="polite"></div></div><div class="panel"><h2>一週計畫牆</h2><p class="small">每欄下方的「安排睡眠」會替當天放入深夜 4 塊、早上 3 塊睡眠。已占用的位置不會被覆蓋。橫向捲動可查看整週。</p><div class="scroll"><table aria-label="一週七天、每天六時段的時間安排"><thead><tr id="head"></tr></thead><tbody id="board"></tbody></table></div></div></section>
-<aside class="sidebar"><div class="panel"><h2>計畫壓力儀表</h2><label for="stress">待處理負荷 <strong id="stressText"></strong></label><meter id="stress" min="0" max="100" low="30" high="65" optimum="0" value="100"></meter><p class="small">依未完成條件估算的遊戲回饋，並非心理測量。調整計畫，就能降低待處理負荷。</p><ul id="checks" class="checks"></ul><button id="submit" class="primary" style="width:100%">檢查並執行計畫</button><div id="notice" role="status" aria-live="polite">先找出最接近的期限，再替每天保留睡眠。</div><div id="result" hidden class="success"></div></div><div class="panel"><h2>需要一點方向？</h2><button id="hintButton">提示 1 / 3</button><div id="hint">提示會逐層展開，不會直接替你完成整週。</div><hr><button id="reset">清空並重新規劃</button><p class="small">同一份計畫通關只通知一次；再次挑戰需重新規劃。獎勵效果與次數上限由外層遊戲決定。</p></div></aside></div>
+<aside class="sidebar"><div class="panel"><h2>計畫壓力儀表</h2><label for="stress">待處理負荷 <strong id="stressText"></strong></label><meter id="stress" min="0" max="100" low="30" high="65" optimum="0" value="100"></meter><p class="small">依未完成條件估算的遊戲回饋，並非心理測量。調整計畫，就能降低待處理負荷。</p><ul id="checks" class="checks"></ul><div style="display:flex;gap:6px"><button id="submit" style="flex:1">檢查計畫</button><button id="apply" class="primary" style="flex:1" disabled>套用強化</button></div><div id="notice" role="status" aria-live="polite">先找出最接近的期限，再替每天保留睡眠。</div><div id="result" hidden class="success"></div></div><div class="panel"><h2>需要一點方向？</h2><button id="hintButton">提示 1 / 3</button><div id="hint">提示會逐層展開，不會直接替你完成整週。</div><hr><button id="reset">清空並重新規劃</button><p class="small">同一份計畫通關只通知一次；再次挑戰需重新規劃。獎勵效果與次數上限由外層遊戲決定。</p></div></aside></div>
 </main>
 <script>
 'use strict';
@@ -77,21 +77,22 @@ const periods=['早上','上午','下午','傍晚','晚上','深夜'];
 const types={math:{name:'數學',hours:2,limit:3,color:'#bca1ff',study:true},english:{name:'英文',hours:2,limit:2,color:'#7bbdff',study:true},science:{name:'理化',hours:2,limit:2,color:'#ffb979',study:true},sleep:{name:'睡眠',hours:1,limit:Infinity,color:'#9ea8eb'},exercise:{name:'運動',hours:1,limit:1,color:'#79ddb0'},social:{name:'社交',hours:1,limit:1,color:'#ff9fc4'},meal:{name:'吃飯',hours:1,limit:3,color:'#f6d47c'},rest:{name:'緩衝／休息',hours:1,limit:Infinity,color:'#94d8de'}};
 let plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));
 let undoStack=[],redoStack=[],reviewDay=-1,attempts=0;
+let verifiedPlan=null;
 let selected='math',hintLevel=0,awarded=false,successCount=0,maxSuccess=null,uid=0;
 const $=id=>document.getElementById(id),all=()=>plan.flat(2),count=type=>all().filter(x=>x.type===type).length,used=slot=>slot.reduce((n,x)=>n+types[x.type].hours,0);
 function say(message){$('notice').textContent=message}
 function capped(){return maxSuccess!==null&&successCount>=maxSuccess}
 function updateCompletion(){$('completion').textContent=maxSuccess===null?`已完成 ${successCount} 次 · 等待外層提供次數上限`:`已完成 ${successCount} / ${maxSuccess} 次`}
 function snapshot(){return JSON.stringify(plan)}
-function remember(){undoStack.push(snapshot());if(undoStack.length>80)undoStack.shift();redoStack=[];reviewDay=-1}
+function remember(){verifiedPlan=null;undoStack.push(snapshot());if(undoStack.length>80)undoStack.shift();redoStack=[];reviewDay=-1}
 function restore(from,to){
  if(awarded||capped()||!from.length)return;
- to.push(snapshot());plan=JSON.parse(from.pop());reviewDay=-1;render();say('已還原計畫；可繼續比較不同的安排。');
+ verifiedPlan=null;to.push(snapshot());plan=JSON.parse(from.pop());reviewDay=-1;render();say('已還原計畫；可繼續比較不同的安排。');
 }
 function recordAttempt(checks){
  attempts++;const failures=checks.filter(c=>!c.ok);
  const li=document.createElement('li');
- li.textContent=`第 ${attempts} 次驗證：${checks.length-failures.length}/${checks.length} 項達成。${failures.length?'調整方向：'+failures.map(c=>c.text).join('；'):'全部通過，已通知外層發放獎勵。'}`;
+ li.textContent=`第 ${attempts} 次驗證：${checks.length-failures.length}/${checks.length} 項達成。${failures.length?'調整方向：'+failures.map(c=>c.text).join('；'):'全部通過，可按「套用強化」領取獎勵。'}`;
  $('historyList').prepend(li);while($('historyList').children.length>10)$('historyList').lastElementChild.remove();
  $('historyCount').textContent=String(attempts);$('historyEmpty').hidden=true;
  $('historyDetails').open=true;
@@ -163,7 +164,7 @@ function render(){
   });$('board').append(row);
  });
  const checks=evaluate();$('checks').replaceChildren();checks.forEach(c=>{const li=document.createElement('li');li.className=c.ok?'ok':'warn';li.textContent=`${c.ok?'✓':'○'} ${c.text}`;$('checks').append(li)});
- const stress=Math.round(100*(1-checks.filter(c=>c.ok).length/checks.length));$('stress').value=stress;$('stressText').textContent=`${stress} / 100`;$('submit').disabled=awarded||capped();
+ const stress=Math.round(100*(1-checks.filter(c=>c.ok).length/checks.length));$('stress').value=stress;$('stressText').textContent=`${stress} / 100`;$('submit').disabled=awarded||capped();$('apply').disabled=awarded||capped()||verifiedPlan!==snapshot();
  $('undo').disabled=awarded||capped()||!undoStack.length;
  $('redo').disabled=awarded||capped()||!redoStack.length;
  $('planStats').textContent=`讀書 ${count('math')+count('english')+count('science')}/7 塊 · 已安排 ${all().reduce((n,x)=>n+types[x.type].hours,0)}/168h · 條件 ${checks.filter(c=>c.ok).length}/${checks.length}`;
@@ -176,9 +177,14 @@ function render(){
 }
 $('submit').onclick=()=>{
  if(awarded||capped())return;
- const checks=evaluate();recordAttempt(checks);
+ verifiedPlan=null;const checks=evaluate();recordAttempt(checks);
  const failures=checks.filter(c=>!c.ok);
- if(failures.length){say(`還有 ${failures.length} 項可調整。先處理：${failures[0].text}。你的安排可以修改，這不是能力評分。`);return}
+ if(failures.length){render();say(`還有 ${failures.length} 項可調整。先處理：${failures[0].text}。你的安排可以修改，這不是能力評分。`);return}
+ verifiedPlan=snapshot();render();say('計畫檢查通過！按「套用強化」領取獎勵；若修改安排，需重新檢查。');
+};
+$('apply').onclick=()=>{
+ if(awarded||capped())return;
+ if(verifiedPlan!==snapshot()||!evaluate().every(c=>c.ok)){verifiedPlan=null;render();say('請先檢查目前的計畫，全部通過後才能套用強化。');return}
  awarded=true;
  window.parent.postMessage({ type: 'attackUpgrade', amount: 1 }, '*');
  successCount++;updateCompletion();render();$('result').hidden=false;
@@ -200,7 +206,7 @@ $('hintButton').onclick=()=>{
 };
 $('reset').onclick=()=>{
  if(!awarded&&all().length&&!window.confirm('清空目前計畫，重新嘗試安排嗎？'))return;
- if(awarded){undoStack=[];redoStack=[]}else remember();reviewDay=-1;plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));awarded=false;$('result').hidden=true;render();say(capped()?'已達成功次數上限，可查看提示與通關條件。':'新的計畫從可控的小步驟開始：先安排睡眠，再處理最近的期限。');
+ if(awarded){undoStack=[];redoStack=[]}else remember();reviewDay=-1;plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));awarded=false;verifiedPlan=null;$('result').hidden=true;render();say(capped()?'已達成功次數上限，可查看提示與通關條件。':'新的計畫從可控的小步驟開始：先安排睡眠，再處理最近的期限。');
 };
 
 // Keep the task palette, calendar and feedback visible side by side.
@@ -225,7 +231,7 @@ const review=document.createElement('div');review.id='dayReview';review.hidden=t
 calendarPanel.insertBefore(toolbar,calendarPanel.querySelector('.scroll'));
 calendarPanel.insertBefore(stats,toolbar);toolbar.after(review);
 const analysis=document.createElement('div');analysis.className='panel';
-analysis.innerHTML='<details id="historyDetails"><summary>驗證紀錄（<span id="historyCount">0</span> 次）</summary><p id="historyEmpty" class="small">提交後會保留最近 10 次結果，協助比較與調整。</p><ol id="historyList"></ol></details><details><summary>操作與通關規則</summary><div id="rulesText">座標為［星期，時段］。逐日檢視只檢查安排，不發放獎勵。<br>數學：週一至週三完成 3 塊；英文：週五前完成 2 塊；理化：週六前完成 2 塊。每塊讀書 2h，立即接 1h 休息。每天睡眠至少 7h；全週安排運動、社交各 1 次與本關吃飯任務 3 塊。<br>吃飯方塊為本關練習任務，不代表一週只需吃三餐。未填時數可保留日常活動與彈性。<br>上一步／下一步支援最近 80 次修改；通關後鎖定，重新規劃才開始新一輪。紀錄僅保存在本頁，重整會清除。</div></details>';
+analysis.innerHTML='<details id="historyDetails"><summary>驗證紀錄（<span id="historyCount">0</span> 次）</summary><p id="historyEmpty" class="small">提交後會保留最近 10 次結果，協助比較與調整。</p><ol id="historyList"></ol></details><details><summary>操作與通關規則</summary><div id="rulesText">座標為［星期，時段］。逐日檢視只整理安排。先按「檢查計畫」，通過後再按「套用強化」領獎；修改、還原或重做後需重新檢查。<br>數學：週一至週三完成 3 塊；英文：週五前完成 2 塊；理化：週六前完成 2 塊。每塊讀書 2h，立即接 1h 休息。每天睡眠至少 7h；全週安排運動、社交各 1 次與本關吃飯任務 3 塊。<br>吃飯方塊為本關練習任務，不代表一週只需吃三餐。未填時數可保留日常活動與彈性。<br>上一步／下一步支援最近 80 次修改；通關後鎖定，重新規劃才開始新一輪。紀錄僅保存在本頁，重整會清除。</div></details>';
 document.querySelector('.sidebar').append(analysis);
 $('undo').onclick=()=>restore(undoStack,redoStack);
 $('redo').onclick=()=>restore(redoStack,undoStack);
