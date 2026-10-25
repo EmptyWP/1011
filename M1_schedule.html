@@ -49,6 +49,20 @@ meter{height:16px}
 @media(max-width:850px){.layout{grid-template-columns:150px minmax(440px,1fr) 200px}.sidebar{display:block}header p{max-width:calc(100% - 150px)}#completion{max-width:140px}h1{font-size:18px}}
 @media(max-width:520px){header p{max-width:none}#completion{position:static;max-width:none;font-size:10px;margin-top:3px}h1{font-size:17px}.layout{grid-template-columns:140px 440px 195px}header,.panel{padding:8px}}
 
+
+.toolbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:4px 0 6px}
+.toolbar button{font-size:11px;padding:5px 7px}
+.toolbar label{font-size:11px;display:flex;align-items:center;gap:3px}
+#planStats{font-size:11px;color:#92e6d0;margin:4px 0}
+.slot.reviewing{border:2px solid #71e1c0;background:#173b42}
+.slot .coordinate{color:#82c7ff;font-size:9px}
+body.hide-coordinates .coordinate{display:none}
+#dayReview{font-size:11px;line-height:1.6;padding:6px;background:#101c30;border-radius:6px;margin-bottom:5px}
+#historyList{padding-left:18px;font-size:11px;line-height:1.6}
+#historyList li{margin-bottom:8px}
+.sidebar details{font-size:12px;margin-top:9px}
+.sidebar summary{cursor:pointer;color:#9fd8ff}
+#rulesText{font-size:11px;line-height:1.6}
 </style>
 </head>
 <body><main>
@@ -62,11 +76,26 @@ const days=['週一','週二','週三','週四','週五','週六','週日'];
 const periods=['早上','上午','下午','傍晚','晚上','深夜'];
 const types={math:{name:'數學',hours:2,limit:3,color:'#bca1ff',study:true},english:{name:'英文',hours:2,limit:2,color:'#7bbdff',study:true},science:{name:'理化',hours:2,limit:2,color:'#ffb979',study:true},sleep:{name:'睡眠',hours:1,limit:Infinity,color:'#9ea8eb'},exercise:{name:'運動',hours:1,limit:1,color:'#79ddb0'},social:{name:'社交',hours:1,limit:1,color:'#ff9fc4'},meal:{name:'吃飯',hours:1,limit:3,color:'#f6d47c'},rest:{name:'緩衝／休息',hours:1,limit:Infinity,color:'#94d8de'}};
 let plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));
+let undoStack=[],redoStack=[],reviewDay=-1,attempts=0;
 let selected='math',hintLevel=0,awarded=false,successCount=0,maxSuccess=null,uid=0;
 const $=id=>document.getElementById(id),all=()=>plan.flat(2),count=type=>all().filter(x=>x.type===type).length,used=slot=>slot.reduce((n,x)=>n+types[x.type].hours,0);
 function say(message){$('notice').textContent=message}
 function capped(){return maxSuccess!==null&&successCount>=maxSuccess}
 function updateCompletion(){$('completion').textContent=maxSuccess===null?`已完成 ${successCount} 次 · 等待外層提供次數上限`:`已完成 ${successCount} / ${maxSuccess} 次`}
+function snapshot(){return JSON.stringify(plan)}
+function remember(){undoStack.push(snapshot());if(undoStack.length>80)undoStack.shift();redoStack=[];reviewDay=-1}
+function restore(from,to){
+ if(awarded||capped()||!from.length)return;
+ to.push(snapshot());plan=JSON.parse(from.pop());reviewDay=-1;render();say('已還原計畫；可繼續比較不同的安排。');
+}
+function recordAttempt(checks){
+ attempts++;const failures=checks.filter(c=>!c.ok);
+ const li=document.createElement('li');
+ li.textContent=`第 ${attempts} 次驗證：${checks.length-failures.length}/${checks.length} 項達成。${failures.length?'調整方向：'+failures.map(c=>c.text).join('；'):'全部通過，已通知外層發放獎勵。'}`;
+ $('historyList').prepend(li);while($('historyList').children.length>10)$('historyList').lastElementChild.remove();
+ $('historyCount').textContent=String(attempts);$('historyEmpty').hidden=true;
+ $('historyDetails').open=true;
+}
 function add(type,day,period){
  if(awarded){say('這份計畫已執行。重新規劃後才能再次挑戰。');return}
  if(capped()){say('已達外層遊戲設定的成功次數上限。');return}
@@ -74,7 +103,7 @@ function add(type,day,period){
  const t=types[type],slot=plan[day][period];
  if(count(type)>=t.limit){say(`${t.name}任務已全部安排；可先移除原位置再調整。`);return}
  if(used(slot)+t.hours>4){say('這格超過 4 小時容量。請選其他位置，或先移除任務。');return}
- slot.push({type,id:++uid});render();say(`已安排${days[day]}${periods[period]}：${t.name} ${t.hours} 小時。`);
+ remember();slot.push({type,id:++uid});render();say(`已安排${days[day]}${periods[period]}：${t.name} ${t.hours} 小時。`);
 }
 function sleepDay(day){
  if(awarded||capped()){say('目前無法修改；請確認次數上限，或重新規劃。');return}
@@ -83,7 +112,7 @@ function sleepDay(day){
  let needed=7-existing;const proposed=plan[day].map(slot=>slot.slice());
  for(const p of [5,5,5,5,0,0,0]){if(!needed)break;if(used(proposed[p])<4){proposed[p].push({type:'sleep',id:++uid});needed--}}
  if(needed){say('早上與深夜的空間不足。請先調整任務，或自行放置睡眠方塊。');return}
- plan[day]=proposed;render();say(`${days[day]}已安排 7 小時睡眠，保留其他時段處理任務。`);
+ remember();plan[day]=proposed;render();say(`${days[day]}已安排 7 小時睡眠，保留其他時段處理任務。`);
 }
 function evaluate(){
  const sleepHours=plan.map(day=>day.flat().filter(x=>x.type==='sleep').length);
@@ -124,21 +153,31 @@ function render(){
   const row=document.createElement('tr'),th=document.createElement('th');th.scope='row';th.textContent=period;row.append(th);
   days.forEach((day,d)=>{
    const td=document.createElement('td'),slot=document.createElement('div');slot.className='slot';slot.tabIndex=0;slot.setAttribute('role','group');slot.setAttribute('aria-label',`${day}${period}，已排 ${used(plan[d][p])} / 4 小時。按 Enter 加入目前選取任務`);
-   const label=document.createElement('span');label.className='slot-label';label.textContent=`${used(plan[d][p])} / 4h · ＋加入`;slot.append(label);
+   const label=document.createElement('span');label.className='slot-label';label.textContent=`${used(plan[d][p])} / 4h · ＋加入`;const coordinate=document.createElement('span');coordinate.className='coordinate';coordinate.textContent=` [${d+1},${p+1}]`;label.append(coordinate);slot.append(label);if(d===reviewDay)slot.classList.add('reviewing');
    slot.onclick=()=>add(selected,d,p);
    slot.onkeydown=e=>{if(e.target===slot&&(e.key==='Enter'||e.key===' ')){e.preventDefault();add(selected,d,p)}};
    slot.ondragover=e=>{e.preventDefault();slot.classList.add('over')};slot.ondragleave=()=>slot.classList.remove('over');slot.ondrop=e=>{e.preventDefault();slot.classList.remove('over');add(e.dataTransfer.getData('text/plain'),d,p)};
    plan[d][p].forEach(item=>{
-    const t=types[item.type],chip=document.createElement('button');chip.className='chip';chip.style.setProperty('--color',t.color);chip.textContent=`${t.name} ${t.hours}h ×`;chip.setAttribute('aria-label',`移除${day}${period}的${t.name}`);chip.disabled=awarded||capped();chip.onclick=e=>{e.stopPropagation();plan[d][p]=plan[d][p].filter(x=>x.id!==item.id);render();say(`已移除${t.name}，可以嘗試另一個安排。`)};slot.append(chip);
+    const t=types[item.type],chip=document.createElement('button');chip.className='chip';chip.style.setProperty('--color',t.color);chip.textContent=`${t.name} ${t.hours}h ×`;chip.setAttribute('aria-label',`移除${day}${period}的${t.name}`);chip.disabled=awarded||capped();chip.onclick=e=>{e.stopPropagation();remember();plan[d][p]=plan[d][p].filter(x=>x.id!==item.id);render();say(`已移除${t.name}，可以嘗試另一個安排。`)};slot.append(chip);
    });td.append(slot);row.append(td);
   });$('board').append(row);
  });
  const checks=evaluate();$('checks').replaceChildren();checks.forEach(c=>{const li=document.createElement('li');li.className=c.ok?'ok':'warn';li.textContent=`${c.ok?'✓':'○'} ${c.text}`;$('checks').append(li)});
  const stress=Math.round(100*(1-checks.filter(c=>c.ok).length/checks.length));$('stress').value=stress;$('stressText').textContent=`${stress} / 100`;$('submit').disabled=awarded||capped();
+ $('undo').disabled=awarded||capped()||!undoStack.length;
+ $('redo').disabled=awarded||capped()||!redoStack.length;
+ $('planStats').textContent=`讀書 ${count('math')+count('english')+count('science')}/7 塊 · 已安排 ${all().reduce((n,x)=>n+types[x.type].hours,0)}/168h · 條件 ${checks.filter(c=>c.ok).length}/${checks.length}`;
+ if(reviewDay>=0){
+  const items=plan[reviewDay].flat(),sleep=items.filter(x=>x.type==='sleep').length;
+  const reading=items.filter(x=>types[x.type].study).length;
+  const sequence=plan[reviewDay].map((slot,i)=>slot.length?`${periods[i]}：${slot.map(x=>types[x.type].name).join(' → ')}`:'').filter(Boolean).join('；');
+  $('dayReview').hidden=false;$('dayReview').textContent=`${days[reviewDay]}｜睡眠 ${sleep}h${sleep<7?'（不足 7h）':''} · 讀書 ${reading*2}h。${sequence||'尚未安排任務。'}`;
+ }else $('dayReview').hidden=true;
 }
 $('submit').onclick=()=>{
  if(awarded||capped())return;
- const failures=evaluate().filter(c=>!c.ok);
+ const checks=evaluate();recordAttempt(checks);
+ const failures=checks.filter(c=>!c.ok);
  if(failures.length){say(`還有 ${failures.length} 項可調整。先處理：${failures[0].text}。你的安排可以修改，這不是能力評分。`);return}
  awarded=true;
  window.parent.postMessage({ type: 'attackUpgrade', amount: 1 }, '*');
@@ -161,7 +200,7 @@ $('hintButton').onclick=()=>{
 };
 $('reset').onclick=()=>{
  if(!awarded&&all().length&&!window.confirm('清空目前計畫，重新嘗試安排嗎？'))return;
- plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));awarded=false;$('result').hidden=true;render();say(capped()?'已達成功次數上限，可查看提示與通關條件。':'新的計畫從可控的小步驟開始：先安排睡眠，再處理最近的期限。');
+ if(awarded){undoStack=[];redoStack=[]}else remember();reviewDay=-1;plan=Array.from({length:7},()=>Array.from({length:6},()=>[]));awarded=false;$('result').hidden=true;render();say(capped()?'已達成功次數上限，可查看提示與通關條件。':'新的計畫從可控的小步驟開始：先安排睡眠，再處理最近的期限。');
 };
 
 // Keep the task palette, calendar and feedback visible side by side.
@@ -176,6 +215,23 @@ layout.insertBefore(taskColumn,calendarColumn);
 const taskIntro=taskColumn.querySelector('.sub');
 taskIntro.textContent='拖曳任務，或先選任務再點格子。點格內方塊移除；支援 Tab／Enter。';
 calendarColumn.querySelector('.small').textContent='每格 4h，依序執行。「安排睡眠」保留每日 7h；空白不算休息。';
+
+
+const calendarPanel=calendarColumn.querySelector('.panel');
+const toolbar=document.createElement('div');toolbar.className='toolbar';
+toolbar.innerHTML='<button id="undo" type="button">↶ 上一步</button><button id="redo" type="button">↷ 下一步</button><button id="review" type="button">▷ 逐日檢視</button><button id="reviewStop" type="button">整週檢視</button><label><input id="coordinates" type="checkbox" checked>顯示座標</label>';
+const stats=document.createElement('div');stats.id='planStats';stats.setAttribute('aria-live','polite');
+const review=document.createElement('div');review.id='dayReview';review.hidden=true;review.setAttribute('aria-live','polite');
+calendarPanel.insertBefore(toolbar,calendarPanel.querySelector('.scroll'));
+calendarPanel.insertBefore(stats,toolbar);toolbar.after(review);
+const analysis=document.createElement('div');analysis.className='panel';
+analysis.innerHTML='<details id="historyDetails"><summary>驗證紀錄（<span id="historyCount">0</span> 次）</summary><p id="historyEmpty" class="small">提交後會保留最近 10 次結果，協助比較與調整。</p><ol id="historyList"></ol></details><details><summary>操作與通關規則</summary><div id="rulesText">座標為［星期，時段］。逐日檢視只檢查安排，不發放獎勵。<br>數學：週一至週三完成 3 塊；英文：週五前完成 2 塊；理化：週六前完成 2 塊。每塊讀書 2h，立即接 1h 休息。每天睡眠至少 7h；全週安排運動、社交各 1 次與本關吃飯任務 3 塊。<br>吃飯方塊為本關練習任務，不代表一週只需吃三餐。未填時數可保留日常活動與彈性。<br>上一步／下一步支援最近 80 次修改；通關後鎖定，重新規劃才開始新一輪。紀錄僅保存在本頁，重整會清除。</div></details>';
+document.querySelector('.sidebar').append(analysis);
+$('undo').onclick=()=>restore(undoStack,redoStack);
+$('redo').onclick=()=>restore(redoStack,undoStack);
+$('review').onclick=()=>{reviewDay=(reviewDay+1)%7;render();say(`正在檢視${days[reviewDay]}，綠框標出當天的六個時段。`)};
+$('reviewStop').onclick=()=>{reviewDay=-1;render()};
+$('coordinates').onchange=e=>document.body.classList.toggle('hide-coordinates',!e.target.checked);
 
 updateCompletion();render();
 </script>
