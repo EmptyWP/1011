@@ -76,6 +76,18 @@ body.hide-coordinates .coordinate{display:none}
 .scroll .slot .coordinate{font-size:12px;line-height:1.4}
 .scroll .chip{font-size:18px;line-height:1.35;font-weight:650;padding:4px 5px;margin:4px 0;overflow-wrap:anywhere}
 
+
+/* Four full-height columns: move the former top banner into the left rail. */
+main{max-width:none;height:calc(100dvh - 16px)}
+.layout{grid-template-columns:180px 155px minmax(460px,1fr) 220px;align-items:stretch}
+.layout>.mission-column{margin:0;min-height:0;overflow:auto;position:static;padding:12px;align-self:stretch}
+.mission-column h1{font-size:21px;line-height:1.55;margin:12px 0}
+.mission-column p,.mission-column p.sub{display:block;max-width:none;font-size:12px;line-height:1.9;margin:12px 0}
+.mission-column #completion{position:static;display:block;max-width:none;font-size:12px;line-height:1.6;margin-top:16px;padding:8px}
+.scroll .slot{height:clamp(54px,calc((100dvh - 190px)/6),112px);min-height:54px}
+@media(max-width:1100px){.layout{grid-template-columns:155px 145px minmax(460px,1fr) 205px}.mission-column h1{font-size:19px}}
+@media(max-width:520px){.layout{grid-template-columns:150px 140px 460px 200px}}
+
 </style>
 </head>
 <body><main>
@@ -224,6 +236,10 @@ $('reset').onclick=()=>{
 
 // Keep the task palette, calendar and feedback visible side by side.
 const layout=document.querySelector('.layout');
+const missionColumn=document.querySelector('main > header');
+missionColumn.classList.add('mission-column');
+missionColumn.setAttribute('aria-label','任務說明');
+layout.prepend(missionColumn);
 const calendarColumn=layout.querySelector('section');
 const taskColumn=document.createElement('aside');
 taskColumn.className='task-column';
