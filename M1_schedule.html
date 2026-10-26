@@ -78,13 +78,13 @@ body.hide-coordinates .coordinate{display:none}
 
 
 /* Four full-height columns: move the former top banner into the left rail. */
-main{max-width:none;height:calc(100dvh - 16px)}
+main{max-width:none;height:min(584px,calc(100dvh - 16px));min-height:0}
 .layout{grid-template-columns:180px 155px minmax(460px,1fr) 220px;align-items:stretch}
 .layout>.mission-column{margin:0;min-height:0;overflow:auto;position:static;padding:12px;align-self:stretch}
 .mission-column h1{font-size:21px;line-height:1.55;margin:12px 0}
 .mission-column p,.mission-column p.sub{display:block;max-width:none;font-size:12px;line-height:1.9;margin:12px 0}
 .mission-column #completion{position:static;display:block;max-width:none;font-size:12px;line-height:1.6;margin-top:16px;padding:8px}
-.scroll .slot{height:clamp(54px,calc((100dvh - 190px)/6),112px);min-height:54px}
+.scroll .slot{height:clamp(54px,calc((min(600px,100dvh) - 190px)/6),112px);min-height:54px}
 @media(max-width:1100px){.layout{grid-template-columns:155px 145px minmax(460px,1fr) 205px}.mission-column h1{font-size:19px}}
 @media(max-width:520px){.layout{grid-template-columns:150px 140px 460px 200px}}
 
