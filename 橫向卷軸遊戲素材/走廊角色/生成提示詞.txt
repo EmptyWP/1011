@@ -1,0 +1,16 @@
+Use case: stylized-concept. Asset: standalone static NPC PNG for a Taiwanese high-school side-scrolling 2D game "夢醒時分". Match the established A-Zhe office worker sprites: detailed clean hand-painted 2D anime game sprite, readable silhouette, soft top-left light, natural proportions, subdued blues and grays, NOT photoreal, NOT chibi. One full-body character, 3/4 side view facing LEFT toward player, entire shoes visible, character occupies lower 70% of a portrait canvas approximately 768x1024. True transparent RGBA background, no scene, no floor or ground shadow. A SMALL clean ivory speech bubble above character with dark navy outline and a short tail pointing toward speaker, attached visually but with clear space from head. Compact Chinese typography, two or three short lines, legible Traditional Chinese. Name tag inside bubble at top. No other UI, no watermark. Every character must have distinct face, hairstyle, pose and accessories. No armor, no guns. This is ONE character only, no sprite sheet.
+
+走廊01_競爭對手
+Character: a 17-year-old Taiwanese male academic rival, neat dark side-parted hair, slim build, white short-sleeve school shirt, navy trousers, black school shoes, holding his exam paper, one eyebrow raised, slightly smug restrained sideways smile, not cartoon villain. Speech bubble EXACT Traditional Chinese text, title "競爭對手" and dialogue "他不是一直都第一名嗎？\n這次怎麼掉成這樣？".
+
+走廊02_老師
+Character: Taiwanese male high-school teacher around 45, short neatly combed dark hair, thin rectangular glasses, beige long-sleeve shirt with rolled cuffs, dark brown belt, charcoal trousers, brown leather shoes, holding a blue teaching folder against torso, other hand gently gesturing, concerned but firm professional expression. Distinct mature face. Speech bubble EXACT Traditional Chinese text, title "老師" and dialogue "距離大考只剩三週，\n要趕快找出問題。".
+
+走廊03_同學甲
+Character: Taiwanese male high-school student age17, rounded friendly face, short slightly spiky black hair, round glasses, white short-sleeve school shirt tucked into navy trousers, black school shoes, backpack on one shoulder, holding an exam-result paper and looking worried while talking about parental expectations. Distinct from smug rival and from Kai. Speech bubble EXACT Traditional Chinese text, title "同學甲" and dialogue "我爸說，模擬考排名\n就看得出大考結果了。".
+
+走廊04_同學乙
+Character: Taiwanese female high-school student age17, straight black hair tied in low ponytail, white short-sleeve school blouse, navy knee-length school skirt, white ankle socks and black loafers, holds a thin admissions brochure, earnest worried expression, naturally talking about college admission competitiveness. Age-appropriate modest uniform. Speech bubble EXACT Traditional Chinese text, title "同學乙" and dialogue "第一志願競爭那麼激烈，\n掉下去就很難追了。".
+
+走廊05_阿凱
+Character: A-Kai, Taiwanese male high-school student age17, slightly messy dark hair, white school shirt casually untucked with collar open, loosened navy school tie, navy trousers and dark sneakers, leaning casually with an overly reassuring half-smile, one hand in pocket and the other discreetly extending a tiny unmarked closed white packet (no visible contents, no brand, no needles). He looks like an ordinary classmate applying peer pressure, not a monster or glamorous gangster. Speech bubble EXACT Traditional Chinese text, title "阿凱" and dialogue "這個能讓你放鬆，\n大家都試過。".
