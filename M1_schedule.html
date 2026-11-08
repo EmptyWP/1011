@@ -227,9 +227,13 @@ function evaluate(){
   else{if(previousStudy&&item.type!=='rest')segmented=false;previousStudy=false;run=0}
  }
  if(previousStudy)segmented=false;
- const mathEarly=plan.slice(0,3).flat(2).filter(x=>x.type==='math').length;
- const deadlines=Object.entries(subjectGoals).every(([key,g])=>plan.slice(0,g.days).flat(2).filter(x=>x.type===key).length===g.blocks);
- return [{ok:excessCount()===0,text:`刪減非必要的超時讀書：剩 ${excessCount()} 塊`},{ok:complete,text:`完成讀書任務：${studies} / ${totalRequired} 塊（共 ${totalRequired*2} 小時）`},{ok:sleepHours.every(n=>n>=7),text:`每日睡眠 ≥ 7 小時：${sleepHours.filter(n=>n>=7).length} / 7 天`},{ok:studies>0&&segmented,text:'每次讀書 ≤ 3 小時，後面立即接休息'},{ok:deadlines,text:`期限前完成；數學前 3 天：${mathEarly} / 3 塊`},{ok:count('exercise')>=1&&count('social')>=1,text:'全週至少 1 次運動＋1 次社交'},{ok:studies>0&&balanced,text:'沒有連續讀書超過 4 小時且無休息'},{ok:count('meal')===3,text:`安排本關 3 塊吃飯任務：${count('meal')} / 3`}];
+ const deadlineProgress=Object.entries(subjectGoals).map(([key,g])=>{
+  const completed=plan.slice(0,g.days).flat(2).filter(x=>x.type===key).length;
+  return {name:g.name,completed,required:g.blocks};
+ });
+ const deadlines=deadlineProgress.every(({completed,required})=>completed===required);
+ const deadlineText=deadlineProgress.map(({name,completed,required})=>`${name} ${completed}/${required}`).join('、');
+ return [{ok:excessCount()===0,text:`刪減非必要的超時讀書：剩 ${excessCount()} 塊`},{ok:complete,text:`完成讀書任務：${studies} / ${totalRequired} 塊（共 ${totalRequired*2} 小時）`},{ok:sleepHours.every(n=>n>=7),text:`每日睡眠 ≥ 7 小時：${sleepHours.filter(n=>n>=7).length} / 7 天`},{ok:studies>0&&segmented,text:'每次讀書 ≤ 3 小時，後面立即接休息'},{ok:deadlines,text:`期限前完成：${deadlineText}`},{ok:count('exercise')>=1&&count('social')>=1,text:'全週至少 1 次運動＋1 次社交'},{ok:studies>0&&balanced,text:'沒有連續讀書超過 4 小時且無休息'},{ok:count('meal')===3,text:`安排本關 3 塊吃飯任務：${count('meal')} / 3`}];
 }
 const evaluateWithoutOptionalChecks=evaluate;
 evaluate=()=>evaluateWithoutOptionalChecks().filter((_,index)=>index!==5&&index!==7);
